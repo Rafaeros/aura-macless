@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+
+  anisette:
+    image: dadoum/anisette-v3-server
+    container_name: anisette
+    restart: always
+    ports:
+      - "6969:6969"
+    volumes:
+      - anisette-v3_data:/home/Alcoholic/.config/anisette-v3
+    networks:
+      - mh-network
+
+  macless-haystack:
+    image: christld/macless-haystack
+    container_name: macless-haystack
+    restart: unless-stopped
+    ports:
+      - "6176:6176"
+    volumes:
+      - mh_data:/app/endpoint/data
+    depends_on:
+      - anisette
+    networks:
+      - mh-network
+
+  aura-worker:
+    build: .
+    container_name: macless-worker
+    restart: always
+    ports:
+      - "5000:5000"
+    depends_on:
+      - macless-haystack
+    environment:
+      - MACLESS_URL=http://macless-haystack:6176
+    networks:
+      - mh-network
+
+volumes:
+  anisette-v3_data:
+  mh_data:
+
+networks:
+  mh-network:
+    driver: bridge
