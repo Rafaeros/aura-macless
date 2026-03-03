@@ -26,7 +26,7 @@ services:
     networks:
       - mh-network
 
-  aura-worker:
+  macless-worker:
     build: .
     container_name: macless-worker
     restart: always
