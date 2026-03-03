@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
 
   anisette:
@@ -13,19 +11,6 @@ services:
     networks:
       - mh-network
 
-  macless-haystack:
-    image: christld/macless-haystack
-    container_name: macless-haystack
-    restart: unless-stopped
-    ports:
-      - "6176:6176"
-    volumes:
-      - mh_data:/app/endpoint/data
-    depends_on:
-      - anisette
-    networks:
-      - mh-network
-
   aura-worker:
     build: .
     container_name: macless-worker
@@ -33,15 +18,20 @@ services:
     ports:
       - "5000:5000"
     depends_on:
-      - macless-haystack
+      - anisette
     environment:
-      - MACLESS_URL=http://macless-haystack:6176
+      - ANISETTE_URL=http://anisette:6969
+
+      - APPLE_ID=seu_email@apple.com
+      - APPLE_PWD=sua_senha
+    volumes:
+      - worker_data:/root/.config/findmy
     networks:
       - mh-network
 
 volumes:
   anisette-v3_data:
-  mh_data:
+  worker_data:
 
 networks:
   mh-network:
