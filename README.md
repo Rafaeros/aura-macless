@@ -1,133 +1,180 @@
-# 🚀 Macless Worker
+# 🚀 Aura Macless Worker (FindMy)
 
-Worker Python responsável por consumir os serviços do Macless Haystack e
-Anisette Server para processamento e integração de dados.
+Worker Python responsável por integração com o ecossistema FindMy
+utilizando Anisette Server.
 
-<hr/>
+Este projeto roda totalmente via Docker, utilizando **uv** para
+gerenciamento moderno de dependências Python.
+
+------------------------------------------------------------------------
 
 ## 🏗 Arquitetura
 
-O sistema é composto por 3 containers Docker:
+O sistema é composto por 2 containers:
 
--   anisette → Serviço Anisette
--   macless-haystack → Endpoint do Macless Haystack
--   macless-worker → Este projeto (worker)
+-   **anisette** → Servidor Anisette (autenticação Apple)
+-   **aura-worker** → Worker FindMy (este projeto)
 
-Todos rodam na mesma rede Docker.
+Todos rodam na mesma rede Docker:
 
-<hr/>
+    mh-network
+
+------------------------------------------------------------------------
 
 ## 📦 Pré-requisitos
 
 -   Docker
--   Docker Compose (v2+ recomendado)
+-   Docker Compose v2+
+-   Apple ID válido com 2FA ativado
 
-<hr/>
+------------------------------------------------------------------------
+
+## 🐳 Dockerfile
+
+``` dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y     gcc     git     libffi-dev     libssl-dev     && rm -rf /var/lib/apt/lists/*
+
+COPY . .
+RUN pip install uv && uv pip install --system .
+
+EXPOSE 5000
+
+CMD ["python", "main.py"]
+```
+
+------------------------------------------------------------------------
 
 ## 🌐 Rede Docker
 
-Os containers se comunicam através de uma rede interna chamada:
+⚠ Dentro do container NÃO use `localhost` para acessar outros serviços.
 
-mh-network
+Use:
 
-⚠ Importante:\
-Dentro do container **não utilize localhost** para acessar outros
-serviços.
+    http://anisette:6969
 
-Use os nomes dos containers como hostname:
+------------------------------------------------------------------------
 
-http://macless-haystack:6176\
-http://anisette:6969
+## 🐳 Executando com Docker Compose
 
-<hr/>
-
-## 🐳 Executando com Docker Compose (Recomendado)
-
-Basta rodar:
-
+``` bash
 docker compose up -d --build
+```
 
 Isso irá:
 
 -   Criar a rede automaticamente
 -   Subir o Anisette Server
--   Subir o Macless Haystack
--   Subir o Macless Worker
+-   Subir o Aura Worker
+-   Criar volumes persistentes
 
-<hr/>
+------------------------------------------------------------------------
 
-## 🔐 Primeira Configuração do Macless
+## 🔐 Configuração Apple ID
 
-Na primeira execução, você deve configurar o Apple ID.
+No docker-compose.yml:
 
-Execute em modo interativo:
+``` yaml
+environment:
+  - ANISETTE_URL=http://anisette:6969
+  - APPLE_ID=seu_email@apple.com
+  - APPLE_PWD=sua_senha
+```
 
-docker compose run --rm macless-haystack
+⚠ Recomenda-se usar arquivo `.env` em produção.
 
-Será solicitado:
-
--   Apple ID
--   Senha
--   Código 2FA
-
-Quando aparecer:
-
-serving at port 6176 over HTTP
-
-Interrompa (CTRL+C) e execute:
-
-docker compose up -d
-
-<hr/>
+------------------------------------------------------------------------
 
 ## 🔌 Portas Expostas
 
-  Serviço            Porta
-  ------------------ -------
-  Anisette Server    6969
-  Macless Haystack   6176
-  Macless Worker     5000
+  Serviço       Porta
+  ------------- -------
+  Anisette      6969
+  Aura Worker   5000
 
-<hr/>
+API disponível em:
+
+    http://localhost:5000
+
+------------------------------------------------------------------------
 
 ## 📁 Volumes Persistentes
 
 -   anisette-v3_data → Dados do Anisette
--   mh_data → Dados do Macless
+-   worker_data → Dados do FindMy
 
-Isso garante que você não precise refazer login no Apple ID a cada
-restart.
-
-<hr/>
-
-## 🧪 Desenvolvimento Local
-
-Para rodar apenas o worker:
-
-docker build -t macless-worker . docker run -p 5000:5000 macless-worker
-
-⚠ Nesse caso você precisará apontar para serviços externos manualmente.
-
-<hr/>
+------------------------------------------------------------------------
 
 ## 🔄 Restart Automático
 
-Todos os serviços estão configurados com política de restart automático.
+Todos os serviços usam:
 
-<hr/>
+``` yaml
+restart: always
+```
+
+------------------------------------------------------------------------
+
+## 🧪 Rodando Apenas o Worker
+
+``` bash
+docker build -t aura-worker .
+docker run -p 5000:5000 aura-worker
+```
+
+⚠ Será necessário apontar para um Anisette externo.
+
+------------------------------------------------------------------------
+
+## 🧰 Rodando Localmente (Sem Docker)
+
+### Instalar uv
+
+``` bash
+pip install uv
+```
+
+### Instalar dependências
+
+``` bash
+uv pip install --system .
+```
+
+### Rodar aplicação
+
+``` bash
+python main.py
+```
+
+Configure variáveis:
+
+``` bash
+export ANISETTE_URL=http://localhost:6969
+export APPLE_ID=seu_email@apple.com
+export APPLE_PWD=sua_senha
+```
+
+------------------------------------------------------------------------
 
 ## 🧯 Troubleshooting
 
 Ver logs:
 
+``` bash
 docker compose logs -f
+```
 
-Reiniciar serviço específico:
+Reiniciar serviço:
 
-docker compose restart macless-worker
+``` bash
+docker compose restart aura-worker
+```
 
 Parar tudo:
 
+``` bash
 docker compose down
-
-<hr/>
+```
