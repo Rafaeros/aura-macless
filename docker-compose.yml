@@ -15,12 +15,12 @@ services:
       image: christld/macless-haystack
       container_name: macless-haystack
       restart: unless-stopped
+      ports:
+        - "6176:6176"
       volumes:
         - mh_data:/app/endpoint/data
       environment:
         - ANISETTE_SERVER=http://anisette:6969
-        - APPLE_ID=email@apple.com
-        - APPLE_PASSWORD=password
       depends_on:
         - anisette
       networks:
